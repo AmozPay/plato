@@ -1,3 +1,7 @@
 venv
 *.epub
 .vscode
+*.opf
+*.zip
+the-republic/
+**/**/__pycache__/

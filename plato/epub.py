@@ -1,5 +1,10 @@
-from ebooklib import epub
 import pathlib
+from enum import Enum
+from ebooklib import epub
+
+class EpubOutputExtenstion(Enum):
+    ZIP = "zip"
+    EPUB = "epub"
 
 class Epub:
     def __init__(self, title: str = "The Republic", authors: list[str] = ["Plato"], language: str = "el"):
@@ -7,6 +12,7 @@ class Epub:
         self._authors = authors
         self._language = language
         self._identifier = self._title.replace(" ", "-").lower()
+        self._chapters: list[epub.EpubHtml] = []
 
     def generate(self):
         self._book = epub.EpubBook()
@@ -15,26 +21,31 @@ class Epub:
             self._book.add_author(author)
         self._book.set_title(self._title)
         self._book.set_language(self._language)
-        self._chapters = self._generate_chapters()
         for chapter in self._chapters:
             self._book.add_item(chapter)
         self._generate_table_of_contents()
         self._style_nav()
         self._book.spine = ["nav", *self._chapters]
 
-    def write(self, path: pathlib.Path = pathlib.Path("./")):
-        filename = self._identifier + ".epub"
+    def write(self, path: pathlib.Path = pathlib.Path("./"), fmt: EpubOutputExtenstion = EpubOutputExtenstion.ZIP):
+        filename = self._identifier + "." + fmt.value
         filepath = pathlib.Path(path, filename)
         epub.write_epub(filepath, self._book, {})
+        return filepath
 
-    def _generate_chapters(self):
-        c1= epub.EpubHtml(title="Chapter 1", file_name="chapter_1.xhtml", lang=self._language)
-        c1.content = u"<html><body><p>Hello World!</p></body></html>"
-        c2 = epub.EpubHtml(
-            title="Chapter 2", file_name="chapter_2.xhtml", lang=self._language
-        )
-        c2.content = u"<html><body><p>My name is John Doe</p></body></html>"
-        return [c1, c2]
+    def add_chapter(self, title: str, file_name: str, content: str):
+        c = epub.EpubHtml(title, file_name)
+        c.content = content
+        self._chapters.append(c)
+
+    # def _generate_chapters(self):
+    #     c1= epub.EpubHtml(title="Chapter 1", file_name="chapter_1.xhtml", lang=self._language)
+    #     c1.content = u"<html><body><p>Hello World!</p></body></html>"
+    #     c2 = epub.EpubHtml(
+    #         title="Chapter 2", file_name="chapter_2.xhtml", lang=self._language
+    #     )
+    #     c2.content = u"<html><body><p>My name is John Doe</p></body></html>"
+    #     return [c1, c2]
 
     def _generate_table_of_contents(self):
         self._book.toc = tuple(epub.Link(chapter.file_name, chapter.title, chapter.get_id()) for chapter in self._chapters)
